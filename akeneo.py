@@ -1,37 +1,38 @@
 import requests
+from requests.auth import HTTPBasicAuth
 
 # Replace with your Akeneo API credentials
 client_id = 'your_client_id'
 secret = 'your_secret'
 username = 'your_username'
 password = 'your_password'
-base_url = 'https://demo.akeneo.com'
+base_url = 'https://test_akeneo_sdk.com'
 
-# Step 1: Get the access token
-def get_access_token():
-    url = f"{base_url}/api/oauth/v1/token"
-    payload = {
-        'grant_type': 'password',
-        'client_id': client_id,
-        'client_secret': secret,
-        'username': username,
-        'password': password
-    }
-    response = requests.post(url, data=payload)
-    response_data = response.json()
-    return response_data['access_token']
+# Get the access token
+token_url = f"{base_url}/api/oauth/v1/token"
+data = {
+    'grant_type': 'password',
+    'client_id': client_id,
+    'client_secret': secret,
+    'username': username,
+    'password': password
+}
 
-# Step 2: Pull data from the Akeneo API
-def get_categories(access_token):
-    url = f"{base_url}/api/rest/v1/categories"
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.get(url, headers=headers)
-    return response.json()
+response = requests.post(token_url, data=data)
+access_token = response.json().get('access_token')
 
-# Main execution
-if __name__ == "__main__":
-    token = get_access_token()
-    categories = get_categories(token)
-    print(categories)
+# Fetch products from Akeneo API
+products_url = f"{base_url}/api/rest/v1/products"
+headers = {
+    'Authorization': f'Bearer {access_token}'
+}
+
+products_response = requests.get(products_url, headers=headers)
+
+# Print the fetched products
+if products_response.status_code == 200:
+    products = products_response.json()
+    for product in products['_embedded']['items']:
+        print(product)
+else:
+    print("Failed to fetch products:", products_response.status_code, products_response.text)
