@@ -4,38 +4,40 @@ import urllib.parse
 
 app = Flask(__name__)
 
-# Base URL for Akeneo
-AKENEO_BASE_URL = "https://your-akeneo-instance.com/api/rest/v1"
+# Base URLs
+akeneo_base_url = "https://your-akeneo-instance.com/api"
+plumbed_base_url = "https://your-plumbed-instance.com/api"
 
 # Akeneo credentials
-AKENEO_CLIENT_ID = "your_akeneo_client_id"
-AKENEO_SECRET = "your_akeneo_secret"
-AKENEO_USERNAME = "your_akeneo_username"
-AKENEO_PASSWORD = "your_akeneo_password"
+akeneo_client_id = "your_akeneo_client_id"
+akeneo_secret = "your_akeneo_secret"
+akeneo_username = "your_akeneo_username"
+akeneo_password = "your_akeneo_password"
 
 # Plumbed credentials
-PLUMBED_USERNAME = "your_plumbed_username"
-PLUMBED_PASSWORD = "your_plumbed_password"
-PLUMBED_API_URL = "https://your-plumbed-instance.com/api"
+plumbed_username = "your_plumbed_username"
+plumbed_password = "your_plumbed_password"
 
-# Plumbed connection details
-ORGANIZATION_ID = "your_organization_id"
-CONNECTION_ID = "your_connection_id"
-SOURCE_OBJECT_NAME = "your_source_object_name"
-TRANSFORM_OBJECT_TYPE = "your_transform_object_type"
-UNIQUE_ID = "your_unique_id"
-PROPOSE_MAPPING = True
+# Plumbed configuration
+organization_id = "your_organization_id"
+connection_id = "your_connection_id"
+source_object_name = "your_source_object_name"
+transform_object_type = "your_transform_object_type"
+unique_id = "your_unique_id"
+propose_mapping = True
 
 def get_akeneo_access_token():
-    auth_url = f"{AKENEO_BASE_URL}/oauth/v1/token"
     auth_payload = {
         "grant_type": "password",
-        "client_id": AKENEO_CLIENT_ID,
-        "client_secret": AKENEO_SECRET,
-        "username": AKENEO_USERNAME,
-        "password": AKENEO_PASSWORD
+        "username": akeneo_username,
+        "password": akeneo_password,
+        "client_id": akeneo_client_id,
+        "client_secret": akeneo_secret
     }
-    response = requests.post(auth_url, data=auth_payload)
+    headers = {
+        "Content-Type": "application/json"
+    }
+    response = requests.post(f"{akeneo_base_url}/oauth/v1/token", headers=headers, json=auth_payload)
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
@@ -46,17 +48,17 @@ def fetch_akeneo_products(access_token):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    response = requests.get(f"{AKENEO_BASE_URL}/products", headers=headers)
+    response = requests.get(f"{akeneo_base_url}/products", headers=headers)
     if response.status_code == 200:
-        return response.json().get("_embedded", {}).get("items", [])
+        return response.json().get('_embedded', {}).get('items', [])
     else:
         raise Exception(f"Failed to fetch products from Akeneo: {response.text}")
 
 def plumbed_access_token():
     auth_payload = {
         "grant_type": "password",
-        "username": PLUMBED_USERNAME,
-        "password": PLUMBED_PASSWORD,
+        "username": plumbed_username,
+        "password": plumbed_password,
         "scope": "",
         "client_id": "",
         "client_secret": ""
@@ -65,7 +67,7 @@ def plumbed_access_token():
         "accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    response = requests.post(PLUMBED_API_URL, headers=headers, data=auth_payload)
+    response = requests.post(f"{plumbed_base_url}/token", headers=headers, data=auth_payload)
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
@@ -87,16 +89,16 @@ def push_to_plumbed(access_token, product_data):
         encoded_data.append(encoded_item)
 
     payload = {
-        "organization_id": ORGANIZATION_ID,
-        "connection_id": CONNECTION_ID,
-        "source_object_name": SOURCE_OBJECT_NAME,
-        "transform_object_type": TRANSFORM_OBJECT_TYPE,
-        "unique_id": UNIQUE_ID,
-        "propose_mapping": PROPOSE_MAPPING,
+        "organization_id": organization_id,
+        "connection_id": connection_id,
+        "source_object_name": source_object_name,
+        "transform_object_type": transform_object_type,
+        "unique_id": unique_id,
+        "propose_mapping": propose_mapping,
         "data": encoded_data
     }
 
-    response = requests.post(PLUMBED_API_URL, headers=headers, json=payload)
+    response = requests.post(f"{plumbed_base_url}/transfer-source-json", headers=headers, json=payload)
     if response.status_code in [200, 201]:
         return response.json()
     else:
