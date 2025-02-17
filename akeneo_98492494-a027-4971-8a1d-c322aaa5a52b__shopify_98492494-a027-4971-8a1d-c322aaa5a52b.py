@@ -6,12 +6,13 @@ import urllib.parse
 app = Flask(__name__)
 
 # Configuration
-akeneo_base_url = "https://your-akeneo-instance.com/api/rest/v1"
-plumbed_base_url = "https://your-plumbed-instance.com"
+akeneo_base_url = "https://your-akeneo-instance.com/api"
 akeneo_client_id = "your_akeneo_client_id"
 akeneo_secret = "your_akeneo_secret"
 akeneo_username = "your_akeneo_username"
 akeneo_password = "your_akeneo_password"
+
+plumbed_base_url = "https://your-plumbed-instance.com"
 organization_id = "your_organization_id"
 connection_id = "your_connection_id"
 source_object_name = "your_source_object_name"
@@ -29,13 +30,13 @@ def get_akeneo_access_token():
         "Content-Type": "application/json"
     }
 
-    data = {
+    auth_payload = {
         "grant_type": "password",
         "username": akeneo_username,
         "password": akeneo_password
     }
 
-    response = requests.post(f"{akeneo_base_url}/oauth/v1/token", headers=headers, json=data)
+    response = requests.post(f"{akeneo_base_url}/oauth/v1/token", headers=headers, json=auth_payload)
 
     if response.status_code == 200:
         return response.json().get("access_token")
@@ -48,7 +49,7 @@ def fetch_akeneo_products(access_token):
         "Content-Type": "application/json"
     }
 
-    response = requests.get(f"{akeneo_base_url}/products", headers=headers)
+    response = requests.get(f"{akeneo_base_url}/api/rest/v1/products", headers=headers)
 
     if response.status_code == 200:
         return response.json().get('_embedded', {}).get('items', [])
@@ -77,7 +78,7 @@ def plumbed_access_token():
     else:
         raise Exception(f"Failed to authenticate with Plumbed: {response.text}")
 
-def push_to_plumbed(product_data, access_token):
+def push_to_plumbed(access_token, product_data):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "accept": "application/json",
@@ -123,7 +124,7 @@ def fetch_and_push_products():
         plumbed_token = plumbed_access_token()
 
         # Push products to Plumbed
-        result = push_to_plumbed(products, plumbed_token)
+        result = push_to_plumbed(plumbed_token, products)
 
         return jsonify(result), 200
     except Exception as e:
