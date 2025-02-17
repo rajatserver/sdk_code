@@ -24,19 +24,22 @@ def get_plumbed_access_token(api_url, username, password):
     else:
         raise Exception(f"Failed to authenticate with Plumbed: {response.text}")
 
-# Step 2: Authenticate and Pull Data from Akeneo
-def pull_data_from_akeneo(api_url, akeneo_token):
+# Step 2: Authenticate Source API and Pull Data
+def get_source_access_token(api_url, client_id, client_secret):
+    # Implement source API authentication logic here
+    pass
+
+def pull_data_from_source(api_url, access_token):
     headers = {
-        "Authorization": f"Bearer {akeneo_token}",
+        "Authorization": f"Bearer {access_token}",
         "accept": "application/json"
     }
-
     response = requests.get(api_url, headers=headers)
 
     if response.status_code == 200:
         return response.json()
     else:
-        raise Exception(f"Failed to pull data from Akeneo: {response.text}")
+        raise Exception(f"Failed to pull data from source: {response.text}")
 
 # Step 3: Push Data to Plumbed
 def push_to_plumbed(api_url, access_token, product_data, organization_id, connection_id, source_object_name, transform_object_type, unique_id, propose_mapping):
@@ -45,7 +48,6 @@ def push_to_plumbed(api_url, access_token, product_data, organization_id, connec
         "accept": "application/json",
         "Content-Type": "application/json"
     }
-
     encoded_data = []
     for item in product_data:
         encoded_item = {
@@ -78,7 +80,6 @@ def pull_from_plumbed(api_url, access_token, organization_id, connection_id, tra
         "accept": "application/json",
         "Content-Type": "application/json"
     }
-
     payload = {
         "organization_id": organization_id,
         "connection_id": connection_id,
@@ -92,50 +93,20 @@ def pull_from_plumbed(api_url, access_token, organization_id, connection_id, tra
     else:
         raise Exception(f"Failed to pull data from Plumbed: {response.text}")
 
-# Step 5: Authenticate and Push Data to Shopify
-def push_data_to_shopify(api_url, shopify_token, product_data):
+# Step 5: Authenticate Target and Push Data to Target
+def get_target_access_token(api_url, client_id, client_secret):
+    # Implement target API authentication logic here
+    pass
+
+def push_to_target(api_url, access_token, product_data):
     headers = {
-        "X-Shopify-Access-Token": shopify_token,
+        "Authorization": f"Bearer {access_token}",
         "accept": "application/json",
         "Content-Type": "application/json"
     }
-
     response = requests.post(api_url, headers=headers, json=product_data)
 
     if response.status_code in [200, 201]:
         return response.json()
     else:
-        raise Exception(f"Failed to push data to Shopify: {response.text}")
-
-# Example usage
-# Note: Replace the placeholders with actual values
-plumbed_api_url = "https://plumbed.example.com/auth"
-akeneo_api_url = "https://akeneo.example.com/api/products"
-shopify_api_url = "https://shopify.example.com/admin/api/2023-01/products.json"
-
-username = "your_username"
-password = "your_password"
-akeneo_token = "your_akeneo_token"
-shopify_token = "your_shopify_token"
-
-organization_id = "your_organization_id"
-connection_id = "your_connection_id"
-source_object_name = "your_source_object_name"
-transform_object_type = "your_transform_object_type"
-unique_id = "your_unique_id"
-propose_mapping = True
-
-# Get Plumbed Access Token
-plumbed_access_token = get_plumbed_access_token(plumbed_api_url, username, password)
-
-# Pull Data from Akeneo
-akeneo_data = pull_data_from_akeneo(akeneo_api_url, akeneo_token)
-
-# Push Data to Plumbed
-push_to_plumbed(plumbed_api_url, plumbed_access_token, akeneo_data, organization_id, connection_id, source_object_name, transform_object_type, unique_id, propose_mapping)
-
-# Pull Data from Plumbed
-plumbed_data = pull_from_plumbed(plumbed_api_url, plumbed_access_token, organization_id, connection_id, transform_object_type)
-
-# Push Data to Shopify
-push_data_to_shopify(shopify_api_url, shopify_token, plumbed_data)
+        raise Exception(f"Failed to push data to target: {response.text}")
