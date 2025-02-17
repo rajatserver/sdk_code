@@ -18,7 +18,7 @@ akeneo_password = "your_akeneo_password"
 plumbed_username = "your_plumbed_username"
 plumbed_password = "your_plumbed_password"
 
-# Plumbed configuration
+# Plumbed connection details
 organization_id = "your_organization_id"
 connection_id = "your_connection_id"
 source_object_name = "your_source_object_name"
@@ -26,7 +26,8 @@ transform_object_type = "your_transform_object_type"
 unique_id = "your_unique_id"
 propose_mapping = True
 
-def get_akeneo_access_token():
+def authenticate_akeneo():
+    auth_url = f"{akeneo_base_url}/oauth/v1/token"
     auth_payload = {
         "grant_type": "password",
         "client_id": akeneo_client_id,
@@ -34,14 +35,14 @@ def get_akeneo_access_token():
         "username": akeneo_username,
         "password": akeneo_password
     }
-    response = requests.post(f"{akeneo_base_url}/oauth/v1/token", data=auth_payload)
+    response = requests.post(auth_url, data=auth_payload)
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
         raise Exception(f"Failed to authenticate with Akeneo: {response.text}")
 
 def fetch_akeneo_products():
-    access_token = get_akeneo_access_token()
+    access_token = authenticate_akeneo()
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
@@ -102,7 +103,7 @@ def push_to_plumbed(product_data):
     else:
         raise Exception(f"Failed to push data to Plumbed: {response.text}")
 
-@app.route('/fetchakeneo_98492494-a027-4971-8a1d-c322aaa5a52bproducts', methods=['GET'])
+@app.route('/fetch_akeneo_products', methods=['GET'])
 def fetch_and_push_products():
     try:
         products = fetch_akeneo_products()
