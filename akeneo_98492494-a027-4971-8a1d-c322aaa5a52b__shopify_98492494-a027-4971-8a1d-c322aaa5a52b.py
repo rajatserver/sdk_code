@@ -1,9 +1,8 @@
-```python
 import requests
 import urllib.parse
 
-# Function to generate access token for a given service
-def generate_access_token(api_url, username, password):
+# Step 1: Generate Plumbed Access Token
+def get_plumbed_access_token(api_url, username, password):
     auth_payload = {
         "grant_type": "password",
         "username": username,
@@ -23,95 +22,120 @@ def generate_access_token(api_url, username, password):
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
-        raise Exception(f"Failed to authenticate: {response.text}")
+        raise Exception(f"Failed to authenticate with Plumbed: {response.text}")
 
-# Generate access token for Plumbed
+# Step 2: Authenticate and Pull Data from Akeneo
+def pull_data_from_akeneo(api_url, akeneo_token):
+    headers = {
+        "Authorization": f"Bearer {akeneo_token}",
+        "accept": "application/json"
+    }
+
+    response = requests.get(api_url, headers=headers)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to pull data from Akeneo: {response.text}")
+
+# Step 3: Push Data to Plumbed
+def push_to_plumbed(api_url, access_token, product_data, organization_id, connection_id, source_object_name, transform_object_type, unique_id, propose_mapping):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    encoded_data = []
+    for item in product_data:
+        encoded_item = {
+            key: (urllib.parse.quote_plus(value) if isinstance(value, str) and value.startswith("http") else value)
+            for key, value in item.items()
+        }
+        encoded_data.append(encoded_item)
+
+    payload = {
+        "organization_id": organization_id,
+        "connection_id": connection_id,
+        "source_object_name": source_object_name,
+        "transform_object_type": transform_object_type,
+        "unique_id": unique_id,
+        "propose_mapping": propose_mapping,
+        "data": encoded_data
+    }
+
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    if response.status_code in [200, 201]:
+        return response.json()
+    else:
+        raise Exception(f"Failed to push data to Plumbed: {response.text}")
+
+# Step 4: Pull Data from Plumbed
+def pull_from_plumbed(api_url, access_token, organization_id, connection_id, transform_object_type):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "organization_id": organization_id,
+        "connection_id": connection_id,
+        "transform_object_type": transform_object_type,
+    }
+
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    if response.status_code in [200, 201]:
+        return response.json()
+    else:
+        raise Exception(f"Failed to pull data from Plumbed: {response.text}")
+
+# Step 5: Authenticate and Push Data to Shopify
+def push_data_to_shopify(api_url, shopify_token, product_data):
+    headers = {
+        "X-Shopify-Access-Token": shopify_token,
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(api_url, headers=headers, json=product_data)
+
+    if response.status_code in [200, 201]:
+        return response.json()
+    else:
+        raise Exception(f"Failed to push data to Shopify: {response.text}")
+
+# Example usage
+# Note: Replace the placeholders with actual values
 plumbed_api_url = "https://plumbed.example.com/auth"
-plumbed_username = "your_plumbed_username"
-plumbed_password = "your_plumbed_password"
-plumbed_access_token = generate_access_token(plumbed_api_url, plumbed_username, plumbed_password)
+akeneo_api_url = "https://akeneo.example.com/api/products"
+shopify_api_url = "https://shopify.example.com/admin/api/2023-01/products.json"
 
-# Pull data from Akeneo
-akeneo_api_url = "https://akeneo.example.com/api"
-akeneo_access_token = generate_access_token(akeneo_api_url, "akeneo_username", "akeneo_password")
+username = "your_username"
+password = "your_password"
+akeneo_token = "your_akeneo_token"
+shopify_token = "your_shopify_token"
 
-headers = {
-    "Authorization": f"Bearer {akeneo_access_token}",
-    "accept": "application/json"
-}
+organization_id = "your_organization_id"
+connection_id = "your_connection_id"
+source_object_name = "your_source_object_name"
+transform_object_type = "your_transform_object_type"
+unique_id = "your_unique_id"
+propose_mapping = True
 
-response = requests.get(f"{akeneo_api_url}/products", headers=headers)
+# Get Plumbed Access Token
+plumbed_access_token = get_plumbed_access_token(plumbed_api_url, username, password)
 
-if response.status_code == 200:
-    akeneo_product_data = response.json()
-else:
-    raise Exception(f"Failed to pull data from Akeneo: {response.text}")
+# Pull Data from Akeneo
+akeneo_data = pull_data_from_akeneo(akeneo_api_url, akeneo_token)
 
-# Push data to Plumbed
-plumbed_push_api_url = "https://plumbed.example.com/push"
+# Push Data to Plumbed
+push_to_plumbed(plumbed_api_url, plumbed_access_token, akeneo_data, organization_id, connection_id, source_object_name, transform_object_type, unique_id, propose_mapping)
 
-headers = {
-    "Authorization": f"Bearer {plumbed_access_token}",
-    "accept": "application/json",
-    "Content-Type": "application/json"
-}
+# Pull Data from Plumbed
+plumbed_data = pull_from_plumbed(plumbed_api_url, plumbed_access_token, organization_id, connection_id, transform_object_type)
 
-payload = {
-    "organization_id": "your_organization_id",
-    "connection_id": "your_connection_id",
-    "source_object_name": "product",
-    "transform_object_type": "product",
-    "unique_id": "product_id",
-    "propose_mapping": True,
-    "data": akeneo_product_data
-}
-
-response = requests.post(plumbed_push_api_url, headers=headers, json=payload)
-
-if response.status_code in [200, 201]:
-    print("Data pushed to Plumbed successfully.")
-else:
-    raise Exception(f"Failed to push data to Plumbed: {response.text}")
-
-# Pull data from Plumbed
-plumbed_pull_api_url = "https://plumbed.example.com/pull"
-
-headers = {
-    "Authorization": f"Bearer {plumbed_access_token}",
-    "accept": "application/json",
-    "Content-Type": "application/json"
-}
-
-payload = {
-    "organization_id": "your_organization_id",
-    "connection_id": "your_connection_id",
-    "transform_object_type": "product",
-}
-
-response = requests.post(plumbed_pull_api_url, headers=headers, json=payload)
-
-if response.status_code in [200, 201]:
-    plumbed_product_data = response.json()
-else:
-    raise Exception(f"Failed to pull data from Plumbed: {response.text}")
-
-# Generate access token for Shopify
-shopify_api_url = "https://shopify.example.com/auth"
-shopify_access_token = generate_access_token(shopify_api_url, "shopify_username", "shopify_password")
-
-# Push data to Shopify
-shopify_push_api_url = "https://shopify.example.com/push"
-
-headers = {
-    "Authorization": f"Bearer {shopify_access_token}",
-    "accept": "application/json",
-    "Content-Type": "application/json"
-}
-
-response = requests.post(shopify_push_api_url, headers=headers, json=plumbed_product_data)
-
-if response.status_code in [200, 201]:
-    print("Data pushed to Shopify successfully.")
-else:
-    raise Exception(f"Failed to push data to Shopify: {response.text}")
-```
+# Push Data to Shopify
+push_data_to_shopify(shopify_api_url, shopify_token, plumbed_data)
