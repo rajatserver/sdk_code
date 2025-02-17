@@ -4,28 +4,15 @@ import urllib.parse
 
 app = Flask(__name__)
 
-# Base URLs
+# Configuration for Akeneo and Plumbed
 akeneo_base_url = "https://your-akeneo-instance.com/api"
 plumbed_base_url = "https://your-plumbed-instance.com"
-
-# Akeneo credentials
 akeneo_client_id = "your_akeneo_client_id"
 akeneo_secret = "your_akeneo_secret"
 akeneo_username = "your_akeneo_username"
 akeneo_password = "your_akeneo_password"
 
-# Plumbed credentials
-plumbed_username = "your_plumbed_username"
-plumbed_password = "your_plumbed_password"
-
-# Plumbed configuration
-organization_id = "your_organization_id"
-connection_id = "your_connection_id"
-source_object_name = "your_source_object_name"
-transform_object_type = "your_transform_object_type"
-unique_id = "your_unique_id"
-propose_mapping = True
-
+# Function to authenticate with Akeneo
 def authenticate_akeneo():
     auth_url = f"{akeneo_base_url}/oauth/v1/token"
     auth_payload = {
@@ -41,6 +28,7 @@ def authenticate_akeneo():
     else:
         raise Exception(f"Failed to authenticate with Akeneo: {response.text}")
 
+# Function to fetch product data from Akeneo
 def fetch_akeneo_products(access_token):
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -52,11 +40,12 @@ def fetch_akeneo_products(access_token):
     else:
         raise Exception(f"Failed to fetch products from Akeneo: {response.text}")
 
+# Function to authenticate with Plumbed
 def plumbed_access_token():
     auth_payload = {
         "grant_type": "password",
-        "username": plumbed_username,
-        "password": plumbed_password,
+        "username": "your_plumbed_username",
+        "password": "your_plumbed_password",
         "scope": "",
         "client_id": "",
         "client_secret": ""
@@ -71,12 +60,14 @@ def plumbed_access_token():
     else:
         raise Exception(f"Failed to authenticate with Plumbed: {response.text}")
 
+# Function to push data to Plumbed
 def push_to_plumbed(product_data, access_token):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "accept": "application/json",
         "Content-Type": "application/json"
     }
+    # Encode URLs in product data
     encoded_data = []
     for item in product_data:
         encoded_item = {
@@ -86,12 +77,12 @@ def push_to_plumbed(product_data, access_token):
         encoded_data.append(encoded_item)
 
     payload = {
-        "organization_id": organization_id,
-        "connection_id": connection_id,
-        "source_object_name": source_object_name,
-        "transform_object_type": transform_object_type,
-        "unique_id": unique_id,
-        "propose_mapping": propose_mapping,
+        "organization_id": "your_organization_id",
+        "connection_id": "your_connection_id",
+        "source_object_name": "your_source_object_name",
+        "transform_object_type": "your_transform_object_type",
+        "unique_id": "your_unique_id",
+        "propose_mapping": "your_propose_mapping",
         "data": encoded_data
     }
 
@@ -101,21 +92,18 @@ def push_to_plumbed(product_data, access_token):
     else:
         raise Exception(f"Failed to push data to Plumbed: {response.text}")
 
+# Flask endpoint to trigger the process
 @app.route('/fetchakeneo_98492494-a027-4971-8a1d-c322aaa5a52bproducts', methods=['GET'])
 def fetch_and_push_products():
     try:
-        # Authenticate with Akeneo
+        # Authenticate and fetch products from Akeneo
         akeneo_token = authenticate_akeneo()
-        
-        # Fetch products from Akeneo
         products = fetch_akeneo_products(akeneo_token)
-        
-        # Authenticate with Plumbed
+
+        # Authenticate with Plumbed and push data
         plumbed_token = plumbed_access_token()
-        
-        # Push products to Plumbed
         result = push_to_plumbed(products, plumbed_token)
-        
+
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
