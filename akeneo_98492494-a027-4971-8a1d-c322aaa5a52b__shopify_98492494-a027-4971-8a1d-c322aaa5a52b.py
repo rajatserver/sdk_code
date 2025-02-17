@@ -54,7 +54,7 @@ def fetch_akeneo_products(access_token):
     response = requests.get(f"{AKENEO_BASE_URL}/api/rest/v1/products", headers=headers)
 
     if response.status_code == 200:
-        return response.json().get('_embedded', {}).get('items', [])
+        return response.json().get("_embedded", {}).get("items", [])
     else:
         raise Exception(f"Failed to fetch products from Akeneo: {response.text}")
 
