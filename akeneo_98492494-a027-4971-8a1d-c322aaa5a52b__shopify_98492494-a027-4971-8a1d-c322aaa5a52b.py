@@ -29,6 +29,7 @@ def get_source_access_token(api_url, client_id, client_secret):
     # Implement source API authentication logic here
     pass
 
+
 def pull_data_from_source(api_url, access_token):
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -93,12 +94,13 @@ def pull_from_plumbed(api_url, access_token, organization_id, connection_id, tra
     else:
         raise Exception(f"Failed to pull data from Plumbed: {response.text}")
 
-# Step 5: Authenticate Target and Push Data to Target
+# Step 5: Authenticate Target API and Push Data
 def get_target_access_token(api_url, client_id, client_secret):
     # Implement target API authentication logic here
     pass
 
-def push_to_target(api_url, access_token, product_data):
+
+def push_data_to_target(api_url, access_token, product_data):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "accept": "application/json",
@@ -110,3 +112,12 @@ def push_to_target(api_url, access_token, product_data):
         return response.json()
     else:
         raise Exception(f"Failed to push data to target: {response.text}")
+
+# Example usage
+# plumbed_access_token = get_plumbed_access_token(plumbed_api_url, username, password)
+# source_access_token = get_source_access_token(source_api_url, client_id, client_secret)
+# product_data = pull_data_from_source(source_api_url, source_access_token)
+# push_to_plumbed(plumbed_api_url, plumbed_access_token, product_data, organization_id, connection_id, source_object_name, transform_object_type, unique_id, propose_mapping)
+# plumbed_data = pull_from_plumbed(plumbed_api_url, plumbed_access_token, organization_id, connection_id, transform_object_type)
+# target_access_token = get_target_access_token(target_api_url, client_id, client_secret)
+# push_data_to_target(target_api_url, target_access_token, plumbed_data)
