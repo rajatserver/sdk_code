@@ -5,20 +5,17 @@ import urllib.parse
 app = Flask(__name__)
 
 # Base URLs
-akeneo_base_url = "https://your-akeneo-instance.com/api"
-plumbed_base_url = "https://your-plumbed-instance.com/api"
+akeneo_base_url = "https://demo.akeneo.com/api/rest/v1"
+plumbed_base_url = "https://your-plumbed-url.com"
 
 # Akeneo credentials
-akeneo_client_id = "your_akeneo_client_id"
-akeneo_secret = "your_akeneo_secret"
-akeneo_username = "your_akeneo_username"
-akeneo_password = "your_akeneo_password"
+akeneo_token = "your_akeneo_access_token"
 
 # Plumbed credentials
-plumbed_username = "your_plumbed_username"
-plumbed_password = "your_plumbed_password"
+username = "your_plumbed_username"
+password = "your_plumbed_password"
 
-# Plumbed configuration
+# Plumbed connection details
 organization_id = "your_organization_id"
 connection_id = "your_connection_id"
 source_object_name = "your_source_object_name"
@@ -26,59 +23,35 @@ transform_object_type = "your_transform_object_type"
 unique_id = "your_unique_id"
 propose_mapping = True
 
-def get_akeneo_access_token():
-    auth_payload = {
-        "grant_type": "password",
-        "username": akeneo_username,
-        "password": akeneo_password,
-        "client_id": akeneo_client_id,
-        "client_secret": akeneo_secret
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    response = requests.post(f"{akeneo_base_url}/oauth/v1/token", headers=headers, json=auth_payload)
-    if response.status_code == 200:
-        return response.json().get("access_token")
-    else:
-        raise Exception(f"Failed to authenticate with Akeneo: {response.text}")
-
-def fetch_akeneo_products(access_token):
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    response = requests.get(f"{akeneo_base_url}/products", headers=headers)
-    if response.status_code == 200:
-        return response.json().get('_embedded', {}).get('items', [])
-    else:
-        raise Exception(f"Failed to fetch products from Akeneo: {response.text}")
-
 def plumbed_access_token():
     auth_payload = {
         "grant_type": "password",
-        "username": plumbed_username,
-        "password": plumbed_password,
+        "username": username,
+        "password": password,
         "scope": "",
         "client_id": "",
         "client_secret": ""
     }
+
     headers = {
         "accept": "application/json",
         "Content-Type": "application/x-www-form-urlencoded"
     }
+
     response = requests.post(f"{plumbed_base_url}/token", headers=headers, data=auth_payload)
+
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
         raise Exception(f"Failed to authenticate with Plumbed: {response.text}")
 
-def push_to_plumbed(access_token, product_data):
+def push_to_plumbed(product_data, access_token):
     headers = {
         "Authorization": f"Bearer {access_token}",
         "accept": "application/json",
         "Content-Type": "application/json"
     }
+
     # Encode URLs in product data
     encoded_data = []
     for item in product_data:
@@ -99,6 +72,7 @@ def push_to_plumbed(access_token, product_data):
     }
 
     response = requests.post(f"{plumbed_base_url}/transfer-source-json", headers=headers, json=payload)
+
     if response.status_code in [200, 201]:
         return response.json()
     else:
@@ -106,19 +80,27 @@ def push_to_plumbed(access_token, product_data):
 
 @app.route('/fetchakeneo_98492494-a027-4971-8a1d-c322aaa5a52bproducts', methods=['GET'])
 def fetch_and_push_products():
+    # Fetch products from Akeneo
+    headers = {
+        "Authorization": f"Bearer {akeneo_token}",
+        "accept": "application/json"
+    }
+    response = requests.get(f"{akeneo_base_url}/products", headers=headers)
+
+    if response.status_code == 200:
+        product_data = response.json().get('_embedded', {}).get('items', [])
+    else:
+        return jsonify({"error": "Failed to fetch products from Akeneo"}), response.status_code
+
+    # Authenticate with Plumbed
     try:
-        # Authenticate with Akeneo
-        akeneo_token = get_akeneo_access_token()
-        
-        # Fetch products from Akeneo
-        products = fetch_akeneo_products(akeneo_token)
-        
-        # Authenticate with Plumbed
-        plumbed_token = plumbed_access_token()
-        
-        # Push products to Plumbed
-        result = push_to_plumbed(plumbed_token, products)
-        
+        access_token = plumbed_access_token()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Push data to Plumbed
+    try:
+        result = push_to_plumbed(product_data, access_token)
         return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
