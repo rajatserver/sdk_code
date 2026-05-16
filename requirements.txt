@@ -1,0 +1,6 @@
+Flask==2.2.3
+Werkzeug==2.2.3
+gunicorn==20.1.0
+requests==2.31.0
+google-cloud-build==3.23.1
+loguru==0.7.2
